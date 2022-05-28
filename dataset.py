@@ -6,7 +6,7 @@ def ToTorchTensors(data):
   if isinstance(data, dict):
     for k, v in data.items():
       if not isinstance(v, torch.Tensor):
-        data[k] = torch.from_numpy(v)
+        data[k] = torch.from_numpy(v.astype(np.float32))
   elif isinstance(data, list):
     for i, v in enumerate(data):
       if not isinstance(v, torch.Tensor):
@@ -41,7 +41,6 @@ if __name__ == "__main__":
   # cropped = torch.load("./data/cropped.pt")
   # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
   # print(f"device: {device}")
-  # cropped = SendToDevice(cropped, device)
   # dataset = KPCNDataset(cropped)
   # print(f"dataset size: {len(dataset)}")
 

@@ -13,10 +13,10 @@ def PreprocessVariance(variance):
   return variance
 
 def PreprocessColor(color, albedo):
-  return color.astype(np.float32) / (albedo + constants.eps) * 255.0
+  return color.astype(np.float32) / (albedo + constants.eps)
 
 def PostprocessColor(color, albedo):
-  return color / 255.0 * (albedo + constants.eps)
+  return color * (albedo + constants.eps)
 
 def PreprocessColorVar(variance, albedo):
   variance = variance / (albedo + constants.eps)**2
@@ -52,33 +52,33 @@ def LoadHighSpp(folder_path):
 
 def LoadLowSpp(folder_path, return_channels = False):
   # albedo
-  albedo = Make3Channels(imageio.imread(folder_path + "/albedo.png").astype(np.float32))
-  albedo_variance = Make3Channels(imageio.imread(folder_path + "/albedoVariance.png").astype(np.float32))
+  albedo = Make3Channels(imageio.imread(folder_path + "/albedo.png").astype(np.float32)) / 255.0
+  albedo_variance = Make3Channels(imageio.imread(folder_path + "/albedoVariance.png").astype(np.float32)) / 255.0
   albedo_variance = PreprocessVariance(albedo_variance)
-  albedo_variance = albedo_variance.reshape((albedo_variance.shape[0], albedo_variance.shape[1], 1))
+  albedo_variance = albedo_variance.reshape((albedo_variance.shape[0], albedo_variance.shape[1], 1)) / 255.0
   albedo_gradient = Gradients(albedo)
 
   # color
-  color = Make3Channels(imageio.imread(folder_path + "/final.png").astype(np.float32))
+  color = Make3Channels(imageio.imread(folder_path + "/final.png").astype(np.float32)) / 255.0
   if switches.albedo_div: color = PreprocessColor(color, albedo)
-  color_variance = Make3Channels(imageio.imread(folder_path + "/colorVariance.png")).astype(np.float32)
+  color_variance = Make3Channels(imageio.imread(folder_path + "/colorVariance.png")).astype(np.float32) / 255.0
   if switches.albedo_div:
     color_variance = PreprocessColorVar(color_variance, albedo)
   else:
     color_variance = PreprocessVariance(color_variance)
-  color_variance =color_variance.reshape((color_variance.shape[0], color_variance.shape[1], 1))
+  color_variance = color_variance.reshape((color_variance.shape[0], color_variance.shape[1], 1))
   color_gradient = Gradients(color)
   
   # depth
-  depth = imageio.imread(folder_path + "/depth.png").astype(np.float32)
+  depth = imageio.imread(folder_path + "/depth.png").astype(np.float32) / 255.0
   depth = depth.reshape(depth.shape[0], depth.shape[1], 1)
-  depth_variance = Make3Channels(imageio.imread(folder_path + "/depthVariance.png").astype(np.float32))
+  depth_variance = Make3Channels(imageio.imread(folder_path + "/depthVariance.png").astype(np.float32)) / 255.0
   depth_variance = PreprocessVariance(depth_variance)
   depth_variance = depth_variance.reshape((depth_variance.shape[0], depth_variance.shape[1], 1))
 
   # normal
-  normal = Make3Channels(imageio.imread(folder_path + "/normal.png").astype(np.float32))
-  normal_variance = Make3Channels(imageio.imread(folder_path + "/normalVariance.png").astype(np.float32))
+  normal = Make3Channels(imageio.imread(folder_path + "/normal.png").astype(np.float32)) / 255.0
+  normal_variance = Make3Channels(imageio.imread(folder_path + "/normalVariance.png").astype(np.float32)) / 255.0
   normal_variance = PreprocessVariance(normal_variance)
   normal_variance = normal_variance.reshape((normal_variance.shape[0], normal_variance.shape[1], 1))
 
@@ -99,7 +99,7 @@ def LoadLowSpp(folder_path, return_channels = False):
   return combined
 
 def ImShow(data):
-  data = np.clip(data, 0.0, 255.0).astype(np.uint8)
+  data = np.clip(data * 255.0, 0.0, 255.0).astype(np.uint8)
   pil_img = PIL.Image.fromarray(data, 'RGB')
   return pil_img
 
@@ -112,7 +112,7 @@ def ImShowPP(data):
 # for patches
 def GetVarianceMap(data, patch_size, relative=False):
   # introduce a dummy third dimension if needed
-  if data.ndim < 3: data = data[:,:,np.newaxis] / 255.0
+  if data.ndim < 3: data = data[:,:,np.newaxis]
   # compute variance
   mean = ndimage.uniform_filter(data, size=(patch_size, patch_size, 1))
   sqrmean = ndimage.uniform_filter(data**2, size=(patch_size, patch_size, 1))
@@ -248,8 +248,8 @@ def Crop(data, gt, pos, patch_size):
   half_size = patch_size // 2
   px, py = pos
   return {
-    "data":data[px-half_size:px+half_size+1,py-half_size:py+half_size+1,:],
-    "gt":gt[px-half_size:px+half_size+1,py-half_size:py+half_size+1,:]
+    "data":data[py-half_size:py+half_size,px-half_size:px+half_size,:],
+    "gt":gt[py-half_size:py+half_size,px-half_size:px+half_size,:]
   }
 
 def GetCroppedPatches(data, gt):
