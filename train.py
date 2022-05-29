@@ -1,4 +1,3 @@
-from itertools import permutations
 from common import envs, constants, switches, nnconfigs, trainconfigs
 from network import MakeNN
 from dataset import KPCNDataset
@@ -15,7 +14,7 @@ def CropLike(data, like, debug=False):
   if data.shape[-2:] != like.shape[-2:]:
     with torch.no_grad():
       dx, dy = data.shape[-2] - like.shape[-2], data.shape[-1] - like.shape[-1]
-      data = data[:,:,dx//2:-dx//2,dy//2:-dy//2]
+      data = data[...,dx//2:-dx//2,dy//2:-dy//2]
       if debug:
         print(dx, dy)
         print("After crop:", data.shape)
@@ -55,7 +54,7 @@ def Train(save_image = False):
   cropped = torch.load("./data/cropped.pt")
   dataset = KPCNDataset(cropped)
   print(f"data loaded, {len(dataset)} patches")
-  dataloader = torch.utils.data.DataLoader(dataset, batch_size=4, shuffle=True)
+  dataloader = torch.utils.data.DataLoader(dataset, batch_size=5, shuffle=True)
   denoiser = MakeNN(nnconfigs.L, switches.mode).to(device)
   criterion = nn.L1Loss()
   print(denoiser, "CUDA:", next(denoiser.parameters()).is_cuda)
@@ -82,8 +81,8 @@ def Train(save_image = False):
     loss_batch /= cnt
     print(f"epoch: {epoch}, loss: {loss_batch}")
     writer.add_scalar("loss", loss_batch, epoch)
-  torch.save(denoiser.state_dict(), "models/dpcn.pth")
-
+    if (epoch + 1)%100 == 0:
+      torch.save(denoiser.state_dict(), f"models/dpcn-{epoch+1}.pth")
 
 if __name__ == "__main__":
   Train()

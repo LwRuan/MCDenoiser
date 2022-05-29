@@ -40,8 +40,8 @@ def Make3Channels(image):
     return image
 
 def LoadHighSpp(folder_path):
-  albedo = Make3Channels(imageio.imread(folder_path + "/albedo.png").astype(np.float32))
-  color = Make3Channels(imageio.imread(folder_path + "/final.png").astype(np.float32))
+  albedo = Make3Channels(imageio.imread(folder_path + "/albedo.png").astype(np.float32)) / 255.0
+  color = Make3Channels(imageio.imread(folder_path + "/final.png").astype(np.float32)) / 255.0
   if switches.albedo_div:
     color = PreprocessColor(color, albedo)
   
@@ -270,6 +270,17 @@ def CroppedFromFiles():
     print(f"get {len(newcropped)} patches, {len(cropped)} in total")
     
   return cropped
+
+def TestDataFromFiles():
+  test = []
+  for f in glob.glob(envs.test_path + "*-16"):
+    name = f[len(envs.test_path):f.index("-16")]
+    print(f"load data and gt: {name}")
+    gt = LoadHighSpp(envs.test_path + name + "-4096")
+    print(f"size: {gt.shape[0]}x{gt.shape[1]}")
+    data = LoadLowSpp(envs.test_path + name + "-16")
+    test.append({"data":data, "gt":gt})
+  return test
 
 if __name__ == "__main__":
   bathroom_gt = LoadHighSpp(envs.data_path + "bathroom-4096")

@@ -3,6 +3,7 @@ from calendar import EPOCH
 
 class envs:
   data_path = "../pngs/"
+  test_path = "../test-pngs/"
 
 class switches:
   albedo_div = True
@@ -24,4 +25,4 @@ class nnconfigs:
 
 class trainconfigs:
   learning_rate = 1e-5
-  epochs = 1000
+  epochs = 10000
