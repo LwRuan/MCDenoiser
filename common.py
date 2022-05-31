@@ -7,7 +7,7 @@ class envs:
 
 class switches:
   albedo_div = True
-  mode = "DPCN" # "KPCN" or "DPCN"
+  mode = "KPCN" # "KPCN" or "DPCN"
 
 class constants:
   patch_size = 64
@@ -25,4 +25,4 @@ class nnconfigs:
 
 class trainconfigs:
   learning_rate = 1e-5
-  epochs = 10000
+  epochs = 2000

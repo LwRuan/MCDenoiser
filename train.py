@@ -20,12 +20,19 @@ def CropLike(data, like, debug=False):
         print("After crop:", data.shape)
   return data
 
+def Crop(data, h, w):
+  if data.shape[-2:] != (h, w):
+    with torch.no_grad():
+      dx, dy = data.shape[-2] - h, data.shape[-1] - w
+      data = data[...,dx//2:-dx//2,dy//2:-dy//2]
+  return data
+
 def ApplyKernel(weights, data, device):
   weights = weights.permute((0, 2, 3, 1)).to(device)
-  _, _, h, w = data.size()
+  _, h, w, _ = weights.size()
   weights = F.softmax(weights, dim=3).view(-1, w * h, constants.output_kernel_size, constants.output_kernel_size)
   r = constants.output_kernel_size // 2
-  data = F.pad(data[:,:3,:,:], (r,) * 4, "reflect")
+  p = (data.size()[-1] - w) // 2
   R = []
   G = []
   B = []
@@ -35,8 +42,8 @@ def ApplyKernel(weights, data, device):
       pos = i*h+j
       ws = weights[:,pos:pos+1,:,:]
       kernels += [ws, ws, ws]
-      sy, ey = i+r-r, i+r+r+1
-      sx, ex = j+r-r, j+r+r+1
+      sy, ey = i+p-r, i+p+r+1
+      sx, ex = j+p-r, j+p+r+1
       R.append(data[:,0:1,sy:ey,sx:ex])
       G.append(data[:,1:2,sy:ey,sx:ex])
       B.append(data[:,2:3,sy:ey,sx:ex])
@@ -46,7 +53,7 @@ def ApplyKernel(weights, data, device):
   res = torch.cat((reds, greens, blues), dim=1).view(-1, 3, h, w).to(device)
   return res
 
-def Train(save_image = False):
+def Train(start=0, model_path="./models/KPCN-200.pth"):
   writer = SummaryWriter('logs')
   device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
   print(f"device: {device}")
@@ -61,7 +68,8 @@ def Train(save_image = False):
   optimizer = optim.Adam(denoiser.parameters(), lr=trainconfigs.learning_rate)
   start_time = time.time()
   permutation = [0, 3, 1, 2]
-  for epoch in range(trainconfigs.epochs):
+  if start != 0: denoiser.load_state_dict(torch.load(model_path))
+  for epoch in range(start, trainconfigs.epochs):
     loss_batch = 0
     cnt = 0
     for i_batch, sample_batch in enumerate(dataloader):
@@ -70,9 +78,11 @@ def Train(save_image = False):
       Y = sample_batch["gt"][:,:,:,:3].permute(permutation).to(device)
       optimizer.zero_grad()
       output = denoiser(X)
+      h, w = output.shape[-2], output.shape[-1]
       if switches.mode == "KPCN":
-        X_input = CropLike(X, output)
-        output = ApplyKernel(output, X_input)
+        # X_input = CropLike(X, output)
+        output = ApplyKernel(output, X, device)
+        output = Crop(output, h, w)
       Y = CropLike(Y, output)
       loss = criterion(output, Y)
       loss.backward()
@@ -82,7 +92,7 @@ def Train(save_image = False):
     print(f"epoch: {epoch}, loss: {loss_batch}")
     writer.add_scalar("loss", loss_batch, epoch)
     if (epoch + 1)%100 == 0:
-      torch.save(denoiser.state_dict(), f"models/dpcn-{epoch+1}.pth")
+      torch.save(denoiser.state_dict(), f"models/{switches.mode}-{epoch+1}.pth")
 
 if __name__ == "__main__":
   Train()

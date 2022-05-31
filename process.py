@@ -235,7 +235,7 @@ def PrunePatches(shape, patches, patchsize, imp):
 def ImportanceSampling(data):
   buffers = [data[:,:,:3], data[:,:,19:22]] # color and normal
   metrics = ['relvar', 'variance']
-  weights = [1.0, 1.0]
+  weights = [10.0, 1.0]
   imp = GetImportanceMap(buffers, metrics, weights, constants.patch_size)
   # get patches
   patches = SamplePatchesProg(data.shape[:2], (constants.patch_size, constants.patch_size), constants.n_patches)
